@@ -5,6 +5,7 @@ import parselmouth
 import joblib
 
 import os
+import io
 
 from typing import Optional
 from fastapi import FastAPI, UploadFile, File
@@ -13,7 +14,6 @@ from fastapi.responses import JSONResponse
 
 def extract_audio_features(mp3_content):
     y, sr = librosa.load(mp3_content)
-
     # MFCCs
     mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
     mfcc_mean = mfccs.mean(axis=1)
@@ -59,10 +59,10 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.post("/get_predictions")
+@app.post("/get_predictions/")
 async def run_model(file: UploadFile):
     mp3_content = await file.read()
-    print('test', mp3_content)
+    mp3_content = io.BytesIO(mp3_content)
     mfcc_mean, pitch_mean, rms, jitter, shimmer, hnr, f1, f2, f3 = extract_audio_features(mp3_content)
 
     row = {}
@@ -85,4 +85,5 @@ async def run_model(file: UploadFile):
 
     result = model.predict(row)[0]
 
+    print('here')
     return JSONResponse(content={"filename": file.filename, "prediction": result})
