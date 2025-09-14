@@ -7,11 +7,11 @@ import joblib
 import os
 
 from typing import Optional
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 
 
-def extract_audio_features(dat_path):
-    y, sr = librosa.load(dat_path)
+def extract_audio_features(mp3_content):
+    y, sr = librosa.load(mp3_content)
 
     # MFCCs
     mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
@@ -58,9 +58,10 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.post("/get_pred")
-async def run_model(dat_path):
-    mfcc_mean, pitch_mean, rms, jitter, shimmer, hnr, f1, f2, f3 = extract_audio_features(dat_path)
+@app.post("/get_predictions")
+async def run_model(file: UploadFile):
+    mp3_content = await file.read()
+    mfcc_mean, pitch_mean, rms, jitter, shimmer, hnr, f1, f2, f3 = extract_audio_features(mp3_content)
 
     row = {}
     for i in range(len(mfcc_mean)):
@@ -80,4 +81,4 @@ async def run_model(dat_path):
     row = {k: row[k] for k in model.feature_names_in_}
     row = pd.DataFrame([row])
 
-    return model.predict(row)
+    return model.predict(row)[0]
