@@ -8,6 +8,7 @@ import os
 
 from typing import Optional
 from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse
 
 
 def extract_audio_features(mp3_content):
@@ -61,6 +62,7 @@ async def root():
 @app.post("/get_predictions")
 async def run_model(file: UploadFile):
     mp3_content = await file.read()
+    print('test', mp3_content)
     mfcc_mean, pitch_mean, rms, jitter, shimmer, hnr, f1, f2, f3 = extract_audio_features(mp3_content)
 
     row = {}
@@ -81,4 +83,6 @@ async def run_model(file: UploadFile):
     row = {k: row[k] for k in model.feature_names_in_}
     row = pd.DataFrame([row])
 
-    return model.predict(row)[0]
+    result = model.predict(row)[0]
+
+    return JSONResponse(content={"filename": file.filename, "prediction": result})
